@@ -20,7 +20,8 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
   var table = {
     config: { // 全局配置项
       checkName: 'LAY_CHECKED', // 是否选中状态的特定字段名
-      indexName: 'LAY_INDEX', // 初始下标索引名，用于恢复当前页表格排序
+      indexName: 'LAY_INDEX', // 下标索引
+      initIndexName: 'LAY_INDEX_INIT', // 初始下标索引名，仅用于内部恢复当前页表格排序
       numbersName: 'LAY_NUM', // 序号
       disabledName: 'LAY_DISABLED' // 禁用状态的特定字段名
     },
@@ -447,7 +448,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
 
     // 让表格平铺
     that.fullSize();
-    that.setColsWidth();
+    that.setColsWidth({isInit: true});
 
     that.pullData(that.page); // 请求数据
     that.events(); // 事件
@@ -487,21 +488,13 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
         var isNone;
         parent = parent || options.elem.parent();
 
-        if(!window.getComputedStyle){
-          // IE 中的 `currentStyle` 获取未显式设置的宽高时会得到 'auto'，jQuery 中有一些 hack 方法获取准确值
-          width = parent.width();
-        }else{
-          var size = that.getElementSize(parent[0]);
-          // IE BUG
-          // border-box: getComputedStyle 得到的 width/height 是按照 content-box 计算出来的
-          width = size.boxSizing === 'border-box' && !lay.ie
-            ? size.width - size.paddingLeft - size.paddingRight - size.borderLeftWidth - size.borderRightWidth
-            : size.width
-        }
+        width = that.getContentWidth(parent);
+
         try {
           isNone = parent.css('display') === 'none';
         } catch(e){}
-        if(parent[0] && !lay.isTopElem(parent[0]) && (!width || isNone)) return getWidth(parent.parent());
+        var parentElem = parent.parent();
+        if(parent[0] && parentElem && parentElem[0] && (!width || isNone)) return getWidth(parentElem);
         return width;
       };
       return getWidth();
@@ -906,7 +899,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
   };
 
   // 动态分配列宽
-  Class.prototype.setColsWidth = function(){
+  Class.prototype.setColsWidth = function(opt){
     var that = this;
     var options = that.config;
     var colNums = 0; // 列个数
@@ -916,6 +909,10 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
     var cntrWidth = that.setInit('width');
     var borderWidth = parseFloat(layui.getStyle(that.elem[0], 'border-left-width'));
     var lastSpreadCol;
+    var headerTableElem = that.layHeader.first().children('table');
+    var mainTableElem = that.layMain.find('table');
+    var isEmptyTable = that.layMain.find('tbody').is(":empty");
+    var isInit = opt && opt.isInit;
 
     // 统计列个数和最后一个分配宽度的列
     that.eachCols(function(i, item){
@@ -988,15 +985,6 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
     // 记录自动列数
     that.autoColNums = autoColNums = autoColNums > 0 ? autoColNums : 0;
 
-    // 如果表格内容为空（无数据 或 请求异常）
-    if (that.layMain.find('tbody').is(":empty")) {
-      // 将表格宽度设置为跟表头一样的宽度，使之可以出现底部滚动条，以便滚动查看所有字段
-      var headerWidth = that.layHeader.first().children('table').width()
-      that.layMain.find('table').width(headerWidth);
-    } else {
-      that.layMain.find('table').width('auto');
-    }
-
     var pixelsForLastCol = cntrWidth;
     that.eachCols(function(i3, item3){
       var minWidth = item3.minWidth || options.cellMinWidth;
@@ -1044,12 +1032,23 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
         var newWidth = Math.max(Math.min(pixelsForLastCol, maxWidth), minWidth);
         item.style.width = newWidth + 'px';
 
+        if (!isInit && isEmptyTable){
+          // 将表格宽度设置为跟表头一样的宽度，使之可以出现底部滚动条，以便滚动查看所有字段
+          mainTableElem.width(that.getContentWidth(headerTableElem));
+        }
         // 二次校验，如果仍然出现横向滚动条（通常是 1px 的误差导致）
         // 不同屏幕分辨率、缩放水平以及浏览器渲染差异，可能会触发这个问题 
         if(that.layMain.prop('offsetHeight') > that.layMain.prop('clientHeight')){
           item.style.width = (parseFloat(item.style.width) - borderWidth) + 'px';
         }
       });
+    }
+
+    if (!isInit && isEmptyTable) {
+      // 将表格宽度设置为跟表头一样的宽度，使之可以出现底部滚动条，以便滚动查看所有字段
+      mainTableElem.width(that.getContentWidth(headerTableElem));
+    } else {
+      mainTableElem.width('auto');
     }
 
     that.setGroupWidth();
@@ -1060,7 +1059,11 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
   Class.prototype.resize = function(){
     var that = this;
 
-    if (!that.layMain) return;
+    var tableElemIsConnected = that.layMain && ('isConnected' in that.layMain[0]
+      ? that.layMain[0].isConnected 
+      : $.contains(document.body, that.layMain[0]));
+
+    if(!tableElemIsConnected) return;
 
     that.fullSize(); // 让表格铺满
     that.setColsWidth(); // 自适应列宽
@@ -1310,8 +1313,9 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
       // 加入序号保留字段
       item1[table.config.numbersName] = numbers;
 
-      // 记录下标索引，用于恢复排序
-      if(!sort) item1[table.config.indexName] = i1;
+      // 记录下标，
+      item1[table.config.indexName] = i1;
+      if(!sort) item1[table.config.initIndexName] = i1; // 记录初始状态下标，仅用于内部恢复当前页表格排序
 
       // 遍历表头
       that.eachCols(function(i3, item3){
@@ -1458,6 +1462,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
           reloadType: opts.type
         });
       }
+
       that.getTrHtml(data, sort, curr, {
         trs: trs,
         trs_fixed: trs_fixed,
@@ -1600,7 +1605,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
         ? parseFloat(totalNums[field] || 0).toFixed(decimals)
       : '';
 
-      // td 显示内容
+      // 合计内容
       var content = function(){
         var text = item3.totalRowText || '';
         var tplData = {
@@ -1620,11 +1625,26 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
         return TOTAL_NUMS || getContent;
       }();
 
+      // td 显示内容
+      var tdContent = function(){
+        var totalRow = item3.totalRow || options.totalRow;
+
+        // 如果 totalRow 参数为字符类型，则解析为自定义模版
+        if(typeof totalRow === 'string'){
+          return laytpl(totalRow).render($.extend({
+            TOTAL_NUMS: TOTAL_NUMS || totalNums[field],
+            TOTAL_ROW: totalRowData || {},
+            LAY_COL: item3
+          }, item3));
+        }
+
+        return content;
+      }();
+
       // 合计原始结果
-      var total = TOTAL_NUMS || thisTotalNum || '';
       item3.field && that.dataTotal.push({
         field: item3.field,
-        total: $('<div>'+ content +'</div>').text()
+        total: $('<div>'+ tdContent +'</div>').text()
       });
 
       // td 容器
@@ -1648,19 +1668,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
         var attr = [];
         if(item3.align) attr.push('align="'+ item3.align +'"'); // 对齐方式
         return attr.join(' ');
-      }() +'>' + function(){
-          var totalRow = item3.totalRow || options.totalRow;
-
-          // 如果 totalRow 参数为字符类型，则解析为自定义模版
-          if(typeof totalRow === 'string'){
-            return laytpl(totalRow).render($.extend({
-              TOTAL_NUMS: TOTAL_NUMS || totalNums[field],
-              TOTAL_ROW: totalRowData || {},
-              LAY_COL: item3
-            }, item3));
-          }
-          return content;
-        }(),
+      }() +'>' + tdContent,
       '</div></td>'].join('');
 
       tds.push(td);
@@ -1892,7 +1900,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
       } else if(opts.type === 'desc'){ //降序
         thisData = layui.sort(data, field, true, true);
       } else { // 清除排序
-        thisData = layui.sort(data, table.config.indexName, null, true);
+        thisData = layui.sort(data, table.config.initIndexName, null, true);
         delete that.sortKey;
         delete options.initSort;
       }
@@ -2072,7 +2080,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
     ](HIDE);
 
     // 操作栏
-    that.layFixRight.css('right', scrollWidth - 1);
+    that.layFixRight.css('right', scrollWidth);
   };
 
   /**
@@ -2795,16 +2803,26 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
       layer.close(that.tipsIndex);
     });
 
+    var rAF = window.requestAnimationFrame || function(fn){return setTimeout(fn, 1000 / 60)};
+
     // 固定列滚轮事件 - 临时兼容方案
     that.layFixed.find(ELEM_BODY).on('mousewheel DOMMouseScroll', function(e) {
       var delta = e.originalEvent.wheelDelta || -e.originalEvent.detail;
       var scrollTop = that.layMain.scrollTop();
-      var step = 30;
+      var step = 100;
+      var rAFStep = 10;
 
       e.preventDefault();
-      that.layMain.scrollTop(scrollTop + (delta > 0 ? -step : step));
+      var cb = function(){
+        if(step > 0){
+          step -= rAFStep;
+          scrollTop += (delta > 0 ? -rAFStep : rAFStep);
+          that.layMain.scrollTop(scrollTop);
+          rAF(cb);
+        }
+      }
+      rAF(cb);
     });
-
   }
 
   /**
@@ -2831,6 +2849,47 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
       marginBottom: parseFloat(style.marginBottom || '0'),
       marginLeft: parseFloat(style.marginLeft || '0'),
       boxSizing: style.boxSizing
+    }
+  }
+
+  /**
+   * 获取元素 content 区域宽度值
+   * 
+   * layui 内置 jQuery v1.12.4 中的 jQuery.fn.width 始终对值四舍五入(3.x 已修复),
+   * 在支持 subpixel Rendering 的浏览器中渲染表格，由于列宽分配时计算值精度不足，
+   * 可能会导致一些小问题(#1726)
+   * 
+   * 这个方法使用 getComputedStyle 获取精确的宽度值进行计算，为了尽可能和以前的行为
+   * 保持一致(主要是隐藏元素内渲染 table 递归获取父元素宽度 https://github.com/layui/layui/discussions/2398)，
+   * 任何非预期的值，都回退到 jQuery.fn.width。未来的版本使用 ResizeObserver 时，可以直接获取表格视图元素的宽度，
+   * 并移除兼容性代码
+   * 
+   * @param {JQuery} elem - 元素的 jQuery 对象
+   * 
+   * @see {@link https://learn.microsoft.com/zh-cn/archive/blogs/ie_cn/css-3}
+   */
+  Class.prototype.getContentWidth = function(elem){
+    var that = this;
+
+    if(
+      // document
+      elem[0].nodeType === 9 ||
+      // IE 中 border-box 盒模型，getComputedStyle 得到的 width/height 是按照 content-box 计算出来的
+      (lay.ie && elem.css('box-sizing') === 'border-box') ||
+      elem.css('display') === 'none'
+    ){
+      return elem.width();
+    }
+
+    var size = that.getElementSize(elem[0]);
+
+    // display: none|inline 元素，getComputedStyle 无法得到准确的 width/height
+    if(typeof size === 'undefined' || !size.width){
+      return elem.width();
+    }else{
+      return size.boxSizing === 'border-box'
+        ? size.width - size.paddingLeft - size.paddingRight - size.borderLeftWidth - size.borderRightWidth
+        : size.width
     }
   };
 
@@ -3268,6 +3327,7 @@ layui.define(['lay', 'laytpl', 'laypage', 'form', 'util'], function(exports){
     data = $.extend({}, data);
     delete data[table.config.checkName];
     delete data[table.config.indexName];
+    delete data[table.config.initIndexName];
     delete data[table.config.numbersName];
     delete data[table.config.disabledName];
     return data;

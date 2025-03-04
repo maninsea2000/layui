@@ -9,10 +9,105 @@ toc: true
 
 <h2 id="2.9.x" lay-toc="{title: '2.9.x'}"></h2>
 
+<h2 id="v2.9.23" class="ws-anchor">
+  v2.9.23
+  <span class="layui-badge-rim">2025-02-19</span>
+  <span class="layui-badge-rim" style="color: #16b777;">稳定版</span>
+</h2>
+
+- #### 基础
+  - 新增 6 个图标 #2511 @sentsim
+- #### form
+  - 修复 `form.val()` 某些情况下赋值失效问题 #2503 @Sight-wcg
+- #### 公共类
+  - 优化 `layui-text` 在混合列表下的显示问题 #2510 @sentsim
+
+### 下载： [layui-v2.9.23.zip](https://gitee.com/layui/layui/attach_files/2060356/download)
+
+---
+
+<h2 id="v2.9.22" class="ws-anchor">
+  v2.9.22
+  <span class="layui-badge-rim">2025-02-14</span>
+</h2>
+
+- #### form
+  - 修复 `form.val()` 第二个参数为 ArrayLike 时表单赋值异常 #2455 @Sight-wcg
+  - 修复 `select` 未选中时 form.val 获取到的值为 null 的问题 #2475 @Sight-wcg
+- #### table
+  - 回滚 #2411 中的 `ResizeObserver` 逻辑，因为可能存在更多的边缘影响 #2501 @Sight-wcg
+- #### treeTable
+  - 修复 异步加载子节点失败后，无法点击重新加载的问题 #2479 @Sight-wcg
+- #### 基础
+  - 优化 Linux 个别环境下的等宽字体 #2488 @SessionHu
+
+### 下载： [layui-v2.9.22.zip](https://gitee.com/layui/layui/attach_files/2054722/download)
+
+---
+
+<h2 id="v2.9.21" class="ws-anchor">
+  v2.9.21
+  <span class="layui-badge-rim">2025-01-03</span>
+</h2>
+
+- #### table
+  - 新增 通过 `ResizeObserver` 自动处理 `table.reisze`，以适应所处容器的尺寸变化 #2411 @Sight-wcg
+  - 修复 未正确导出合计行模板的问题 #2412 @sentsim
+  - 优化 表格在隐藏元素中渲染的宽度问题 #2376 #2402 @Sight-wcg
+  - 修复 IE8 下执行渲染的报错问题 #2437 @Sight-wcg
+- #### treeTable
+  - 修复 直接赋值 `data` 时切换分页出现报错的问题 #2406 @sentsim
+- #### tab
+  - 新增 `element.tabDelete()` 方法的第三个参数，用于强制删除 tab #2407 @sentsim
+  - 修复 指定元素渲染，添加和删除选项卡会导致全部 tab 重新渲染的问题 #2386 @Sight-wcg
+  - 修复 出现展开按钮时，活动选项卡底边框显示异常 #2387 @Sight-wcg
+- #### form
+  - 修复 `form.val()` 获取 `multiple select` 值错误 #2425 @Sight-wcg
+  - 修复 IE8 中 `checkbox` 半选异常问题 #2442 @Sight-wcg
+- #### nav
+  - 修复 IE 低版本下执行 `element.render('nav')` 的报错问题 #2415 @Sight-wcg
+- #### colorpicker
+  - 修复 清空后点击右侧颜色滑块，出现的颜色值错误 #2401 @Sight-wcg
+- #### code
+  - 增强 `onCopy` 可获取复制状态和阻止默认提示 #2419 @Sight-wcg
+- #### 其他
+  - 优化 `.layui-body` 和 `.layui-text` 样式细节 #2395 @sentsim
+
+### 下载： [layui-v2.9.21.zip](https://gitee.com/layui/layui/attach_files/2014210/download)
+
+---
+
+<h2 id="v2.9.20" class="ws-anchor">
+  v2.9.20
+  <span class="layui-badge-rim" style="color: #16b777;">稳定版</span>
+  <span class="layui-badge-rim">2024-11-25</span>
+</h2>
+
+- #### table
+  - 加强 固定列的滚动体验使得其更接近原生的平滑 #2335 @Sight-wcg
+  - 改进 表格自动调整大小的处理，以修复一些边缘报错问题 #2284 @Sight-wcg
+  - 修复 由 #2250 造成的右侧固定列偏移问题 #2318 @Sight-wcg
+  - 修复 设置列宽仍然存在的一些边缘情况 #2332 @Sight-wcg
+  - 修复 排序且重载后 `table.cache` 数据中的 `LAY_INDEX` 丢失的问题 #2340 @sentsim
+- #### layer
+  - 新增 iframe 弹层在初始加载时的 loading 动画 #2330 @sentsim
+- #### dropdown
+  - 重构 面板打开与关闭的逻辑 #2349 @sentsim
+  - 调整 `closeOnClick` 选项默认值为 `true`，即点击目标元素时自动切换打开与关闭 #2349 @sentsim
+  - 修复 在元素自定义事件中创建实例并立刻显示的报错问题 #2349 @sentsim
+- #### util
+  - 修复 `util.on()` 多个方法并列使用时，同一委托元素的 `trigger` 冲突问题 #2348 @sentsim
+
+### 下载： [layui-v2.9.20.zip](https://gitee.com/layui/layui/attach_files/1973261/download)
+
+---
+
+😹 `2.9.19` 版本因为存在一个小缺陷而被跳过
+
+---
 
 <h2 id="v2.9.18" class="ws-anchor">
   v2.9.18
-  <span class="layui-badge-rim" style="color: #16b777;">稳定版</span>
   <span class="layui-badge-rim">2024-10-14</span>
 </h2>
 

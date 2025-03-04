@@ -671,7 +671,7 @@ layui.define(['table'], function (exports) {
       } else {
         var asyncSetting = treeOptions.async || {};
         var asyncUrl = asyncSetting.url || options.url;
-        if (asyncSetting.enable && trData[isParentKey] && !trData[LAY_ASYNC_STATUS]) {
+        if (asyncSetting.enable && trData[isParentKey] && (!trData[LAY_ASYNC_STATUS] || trData[LAY_ASYNC_STATUS] === 'error')) {
           trData[LAY_ASYNC_STATUS] = 'loading';
           flexIconElem.html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-loop layui-anim-rotate"></i>');
 
@@ -726,6 +726,7 @@ layui.define(['table'], function (exports) {
               // 检查数据格式是否符合规范
               if (res[asyncResponse.statusName] != asyncResponse.statusCode) {
                 trData[LAY_ASYNC_STATUS] = 'error';
+                trData[LAY_EXPAND] = false;
                 // 异常处理 todo
                 flexIconElem.html('<i class="layui-icon layui-icon-refresh"></i>');
                 // 事件
@@ -736,6 +737,7 @@ layui.define(['table'], function (exports) {
             },
             error: function (e, msg) {
               trData[LAY_ASYNC_STATUS] = 'error';
+              trData[LAY_EXPAND] = false;
               // 异常处理 todo
               typeof options.error === 'function' && options.error(e, msg);
             }
@@ -1048,6 +1050,7 @@ layui.define(['table'], function (exports) {
     var isParentKey = customName.isParent;
     var tableFilterId = tableViewElem.attr('lay-filter');
     var treeTableThat = that;
+    var existsData = options.data.length; // 是否直接赋值 data
     // var tableData = treeTableThat.getTableData();
 
     level = level || 0;
@@ -1056,9 +1059,14 @@ layui.define(['table'], function (exports) {
       // 初始化的表格里面没有level信息，可以作为顶层节点的判断
       tableViewElem.find('.layui-table-body tr:not([data-level])').attr('data-level', level);
       layui.each(table.cache[tableId], function (dataIndex, dataItem) {
-        tableViewElem.find('.layui-table-main tbody tr[data-level="0"]:eq(' + dataIndex + ')').attr('lay-data-index', dataItem[LAY_DATA_INDEX]);
-        tableViewElem.find('.layui-table-fixed-l tbody tr[data-level="0"]:eq(' + dataIndex + ')').attr('lay-data-index', dataItem[LAY_DATA_INDEX]);
-        tableViewElem.find('.layui-table-fixed-r tbody tr[data-level="0"]:eq(' + dataIndex + ')').attr('lay-data-index', dataItem[LAY_DATA_INDEX]);
+        // fix: 修正直接赋值 data 时顶层节点 LAY_DATA_INDEX 值的异常问题
+        if (existsData) {
+          dataItem[LAY_DATA_INDEX] = String(dataIndex);
+        }
+        var layDataIndex = dataItem[LAY_DATA_INDEX];
+        tableViewElem.find('.layui-table-main tbody tr[data-level="0"]:eq(' + dataIndex + ')').attr('lay-data-index', layDataIndex);
+        tableViewElem.find('.layui-table-fixed-l tbody tr[data-level="0"]:eq(' + dataIndex + ')').attr('lay-data-index', layDataIndex);
+        tableViewElem.find('.layui-table-fixed-r tbody tr[data-level="0"]:eq(' + dataIndex + ')').attr('lay-data-index', layDataIndex);
       })
     }
 
